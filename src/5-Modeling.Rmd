@@ -1,0 +1,91 @@
+---
+title: "5-Modeling"
+author: "Xuelin Zhu"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r}
+library(glmnet)
+load('data/2-pcreg/PCA.Rdata')
+load('data/2-pcreg/trainPcData.Rdata')
+load('data/2-pcreg/testPcData.Rdata')
+```
+
+### Logistic Regression with PCA
+We first check how much variation could be explained by first few pcs.
+```{r}
+summary(PCA)
+```
+#### Modeling
+First 100 pcs could explain 90% of total variation. So, we use the 100 pcs to fit a logistic regression.
+```{r}
+logitReg = glm(resp~., data=trainPcData[,1:101], family=binomial())
+```
+
+#### Validation
+From the warning, it says the MLE still does not converge. Let's check it prediction accuracy.
+```{r}
+predProb = predict(logitReg, testPcData, type='response')
+predResult = predProb>0.5
+
+table(testPcData[,1]==1, predResult, dnn=c('Actual','Predicted'))
+```
+The behavior is not good. I guess this may due to over-fitting.
+
+#### Auto Selection by AIC
+To avoid over-fitting, I did an auto selection by AIC. The next chunk takes a long time, so I have saved its result in ```~/data/2-pcreg/logitRegRed.RData``` so that you can skip it.
+```{r, eval=FALSE}
+logitRegRed = step(logitReg)
+save(logitRegRed, file = 'data/2-pcreg/logitRegRed.RData')
+```
+
+Checking the prediction accuracy of reduced logistic model
+```{r}
+load('data/2-pcreg/logitRegRed.RData')
+
+predProb = predict(logitRegRed, testPcData, type='response')
+predResult = predProb>0.5
+
+table(testPcData[,1]==1, predResult, dnn=c('Actual','Predicted'))
+```
+
+### Logistic Regression with PCA and Ridge
+Let's use Ridge instead of AIC to select significant pcs.
+```{r}
+trainX = as.matrix(trainPcData[,-1])
+
+mycv = cv.glmnet(trainX, trainPcData[,1], nfolds=10, standardize=TRUE)
+plot(mycv);mycv$lambda.min
+logitRidge = glmnet(trainX, trainPcData[,1], intercept=TRUE, lambda=mycv$lambda.min); rm(mycv)
+
+testX = as.matrix(testPcData[,-1])
+
+ridgePredResult = predict(logitRidge, testX, type='response')
+ridgePredResult = ridgePredResult>0.5
+
+table(testPcData[,1]==1, ridgePredResult, dnn=c('Actual','Predicted'))
+
+save(logitRidge, file='data/3-shrinkage/logitRidge.Rdata')
+```
+
+### Logistic Regression with PCA and LASSO
+```{r}
+mycv = cv.glmnet(trainX, trainPcData[,1], nfolds=10, standardize=TRUE, family='multinomial')
+plot(mycv);mycv$lambda.min
+logitLasso = glmnet(trainX, trainPcData[,1], intercept=TRUE, lambda=mycv$lambda.min); rm(mycv)
+
+lassoPredResult = predict(logitLasso, testX, type='response')
+lassoPredResult = lassoPredResult>0.5
+
+table(testPcData[,1]==1, lassoPredResult, dnn=c('Actual','Predicted'))
+
+save(logitLasso, file='data/3-shrinkage/logitLasso.Rdata')
+```
+
+
+
+
+
+
+

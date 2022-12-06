@@ -1,0 +1,47 @@
+---
+title: "4-PCA"
+author: "Xuelin Zhu"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+Since we can not fit logistic regression on high dimensional gene data (MLE does not converge), we did a PCA here. It also takes a little bit time, so I have saved it in ```~/data/2-pcreg/PCA.Rdata```
+```{r, eval=FALSE}
+load('data/1-split/trainData.RData'); load('data/1-split/testData.RData')
+geneData = trainData[,4:22733]
+PCA = prcomp(geneData, scale = T)
+save(PCA,file='data/2-pcreg/PCA.Rdata')
+```
+
+The following chunk is to calculate all principal components of train data and test data. Results are saved ```~/data/2-pcreg.testPcData.Rdata``` and ```~/data/2-pcreg/trainPcData.Rdata```.
+```{r, eval=FALSE}
+load('data/2-pcreg/PCA.Rdata')
+
+# Save PC for training set
+trainPcData = cbind(trainData[,1:3], predict(PCA))
+trainPcData = as.data.frame(trainPcData)
+save(trainPcData, file='data/2-pcreg/trainPcData.Rdata')
+
+# Save PC for testing set
+testPcData = testData[,4:22733] %*% PCA$rotation
+testPcData = cbind(testData[,1:3], testPcData)
+testPcData = as.data.frame(testPcData)
+save(testPcData, file='data/2-pcreg/testPcData.Rdata')
+```
+
+Checking how much variation is explained by principal components.
+```{r}
+load('data/2-pcreg/PCA.Rdata')
+summary(PCA)
+```
+
+
+
+
+
+
+
+
+
+
+

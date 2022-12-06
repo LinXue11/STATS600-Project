@@ -1,0 +1,99 @@
+---
+title: "2 Exploratory Data Analysis"
+author: "Xuelin Zhu"
+date: "`r Sys.Date()`"
+output: html_document
+---
+```{r}
+load('data/data0.RData')
+library(ggplot2)
+library(ggcorrplot)
+theme_set(theme_classic())
+```
+
+This Rmarkdown document is for exploratory data analysis, including descriptive statistics, some plots and correlation. I hope by doing this I can get a better understanding of the data for the modeling.
+
+### 1: Cancer and age
+```{r}
+tempDf = data.frame(resp = data0[,1], age = data0[,2], gender = data0[,3])
+tempDf$resp = factor(tempDf$resp, levels = 0:1, labels = c('Normal', 'Tumor'))
+tempDf$gender = factor(tempDf$gender, levels = 0:1, labels = c('Female', 'Male'))
+
+ggplot(tempDf, aes(resp, age)) + 
+  geom_boxplot(varwidth=T, fill="plum") + 
+  labs(title="Box plot", 
+       subtitle="Grouped current age",
+       x="Diagnoses",
+       y="Current Age")
+```
+
+### 2: Cancer and gender
+```{r}
+ggplot(tempDf, aes(resp)) +
+  geom_bar(aes(fill=gender), width = 0.5) + 
+  theme(axis.text.x = element_text(angle=65, vjust=0.6)) +
+  labs(title="Categorywise Bar Chart", 
+       subtitle="Difference between gender", 
+       x='Diagnosis',
+       y='# of Patients')
+```
+
+### 3: Cancer, age and gender
+```{r}
+ggplot(tempDf, aes(age)) +
+  geom_histogram(aes(fill=gender),
+                 bins=20, 
+                 col="black",
+                 size=.1) +  # change binwidth
+  labs(title="Age Histogram", 
+       subtitle="Difference between gender and age",
+       x='Age',
+       y='# of Patients')  
+```
+
+### 4. Check the contingency table of gender and cancer
+```{r}
+chisq.test(table(tempDf[,c(1,3)]))
+```
+
+### 5. Gene Correlation
+Gene data are high dimensional, so I calculated the correlation of first 2000 gene in the next chunk. This procedure takes time, so I have saved its result in the file ```~/data/cor.Rdata``` so that you can skip the next chunk.
+```{r, eval=FALSE}
+cor = cor(data0[,4:2000])
+save(cor, file='data/cor.Rdata')
+```
+
+If skipping the last chunk, we can directly read it from the data folder. It is found that many genes are highly correlated.
+```{r}
+load('data/cor.Rdata')
+which(abs(cor)>0.9&cor<1, arr.ind = T)
+
+largeCor = c(256,284,293,307,418,568,661,880,922,925,948,972,999,1139,1230,1440,
+             1454,1477,1592,1598,1759,1810,1887,1895)
+
+corr = round(cor[largeCor,largeCor])
+rm(largeCor,cor)
+
+ggcorrplot(corr, hc.order = TRUE, 
+           type = "lower", 
+           lab = TRUE, 
+           lab_size = 3, 
+           method="square", 
+           colors = c("springgreen3", "white", "tomato2"), 
+           ggtheme=theme_bw) + 
+labs(title="Gene Expression Correlation", 
+     subtitle="First 1000 Gene Illustration")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
