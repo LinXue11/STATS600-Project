@@ -1,0 +1,8 @@
+.DS_Store
+.Rhistory
+data/MANIFEST.txt
+.Rproj.user
+data/data0.RData
+data/limma_res.RDS
+data/tcga_data.RDS
+data/2-pcreg/PCA.Rdata
